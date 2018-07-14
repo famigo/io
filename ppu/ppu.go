@@ -2,75 +2,115 @@ package ppu
 
 import (
 	"github.com/famigo/asm"
+	"github.com/famigo/io"
 )
 
-//NameTableTopLeft is the address of the name table localized at top left
-const NameTableTopLeft = 0x2000
+// Nametable addresses
+const (
+	//NameTableTopLeft is the address of the name table localized at top left
+	NameTableTopLeft = uint16(0x2000 + 0x0400*iota)
+	NameTableTopRight
+	NameTableBottomLeft
+	NameTableBottomRight
+)
 
-//ScreenWidthTiles is the number of tiles of a screen
-const ScreenWidthTiles = 32
+// Screen dimensions
+const (
+	//ScreenWidthTiles is the number of tiles of a screen
+	ScreenWidthTiles = 32
 
-//ScreenHeightTiles is the number of tiles of a screen
-const ScreenHeightTiles = 30
+	//ScreenHeightTiles is the number of tiles of a screen
+	ScreenHeightTiles = 30
+)
 
-/*
-CTRL is the PPUCTRL register
+// CTRL flags
+const (
+	SelectNameTableAtTopRight = byte(1 << iota)
+	SelectNameTableAtBottomLeft
+	IncrementVramBy32GoingDown
+	SelectRightPatternTableFor8x8Sprites
+	SelectRightPatternTableForBackground
+	Enable8x16Sprites
+	EnableOutputColorOnEXT
+	EnableNMI
 
-	7  bit  0
-	---- ----
-	VPHB SINN
-	|||| ||||
-	|||| ||++- Base nametable address
-	|||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-	|||| |+--- VRAM address increment per CPU read/write of PPUDATA
-	|||| |     (0: add 1, going across; 1: add 32, going down)
-	|||| +---- Sprite pattern table address for 8x8 sprites
-	||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
-	|||+------ Background pattern table address (0: $0000; 1: $1000)
-	||+------- Sprite size (0: 8x8; 1: 8x16)
-	|+-------- PPU master/slave select
-	|          (0: read backdrop from EXT pins; 1: output color on EXT pins)
-	+--------- Generate a NMI at the start of the vertical blanking interval (0: off; 1: on)
+	SelectNameTebleAtBottomRight = byte(3)
+	SelectNameTableAtTopLeft     = byte(0)
+	IncrementVramBy1GoingAcross
+	SelectLeftPatternTableFor8x8Sprites
+	SelectLeftPatternTableForBackground
+	Enable8x8Sprites
+	DisableNMI
+)
 
-famigo:reg 0x2000
-*/
-var CTRL = make(chan byte)
+// MASK flags
+const (
+	EnableGreyscale = byte(1 << iota)
+	ShowBackgroundInLefmostColumn
+	ShowSpritesInLeftmostColumn
+	ShowBackground
+	ShowSprites
+	EmphasizeRed
+	EmphasizeGreen
+	EmphasizeBlue
+	DisableGreyscale = byte(0)
+	HideBackgroundInLefmostColumn
+	HideSpritesInLeftmostColumn
+	HideBackground
+	HideSprites
+)
 
-/*
-MASK blablabla
+// Registers
+var (
+	/*
+		CTRL is the PPUCTRL register
 
-famigo:reg 0x2001
-*/
-var MASK = make(chan byte)
+			7  bit  0
+			---- ----
+			VPHB SINN
+			|||| ||||
+			|||| ||++- Base nametable address
+			|||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+			|||| |+--- VRAM address increment per CPU read/write of PPUDATA
+			|||| |     (0: add 1, going across; 1: add 32, going down)
+			|||| +---- Sprite pattern table address for 8x8 sprites
+			||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
+			|||+------ Background pattern table address (0: $0000; 1: $1000)
+			||+------- Sprite size (0: 8x8; 1: 8x16)
+			|+-------- PPU master/slave select
+			|          (0: read backdrop from EXT pins; 1: output color on EXT pins)
+			+--------- Generate a NMI at the start of the vertical blanking interval (0: off; 1: on)
+	*/
+	CTRL = io.PPUCTRL
 
-/*
-STATUS blablabla
+	/*
+		MASK blablabla
+	*/
+	MASK = io.PPUMASK
 
-famigo:reg 0x2002
-*/
-var STATUS = make(chan byte)
+	/*
+		STATUS blablabla
+	*/
+	STATUS = io.PPUSTATUS
 
-/*
-SCROLL blablabla
-*/
-var SCROLL = make(asm.Register, 0x2005)
+	/*
+		SCROLL blablabla
+	*/
+	SCROLL = io.PPUSCROLL
 
-/*
-ADDR blablabla
+	/*
+		ADDR blablabla
+	*/
+	ADDR = io.PPUADDR
 
-famigo:reg 0x2006
-*/
-var ADDR = make(chan byte)
-
-/*
-DATA blablabla
-
-famigo:reg 0x2007
-*/
-var DATA = make(chan byte)
+	/*
+		DATA blablabla
+	*/
+	DATA = io.PPUDATA
+)
 
 //SetNameTableTile sets the value of one cell of a name table
-func SetNameTableTile(nametable int16, row byte, col byte, tile byte) {
+func SetNameTableTile(nametable uint16, row byte, col byte, tile byte) {
 	asm.Printfln("  LDA %v", STATUS)
 	offset := int16(row*32 + col)
 	asm.Printfln("  CLC")
