@@ -109,6 +109,10 @@ var (
 	DATA = io.PPUDATA
 )
 
+//SetNameTable sets the data of an name table
+func SetNameTable(nametable uint16, data *[30][32]byte) {
+}
+
 //SetNameTableTile sets the value of one cell of a name table
 func SetNameTableTile(nametable uint16, row byte, col byte, tile byte) {
 	asm.Printfln("  LDA %v", STATUS)
@@ -124,6 +128,11 @@ func SetNameTableTile(nametable uint16, row byte, col byte, tile byte) {
 	asm.Printfln("  STA %v", ADDR)
 	asm.Printfln("  LDA %v", tile)
 	asm.Printfln("  STA %v", DATA)
+}
+
+//SetBackgroundPalletes loads the background palletes
+func SetBackgroundPalletes(palletes []byte) {
+
 }
 
 //SetBackgroundPallete loads one of the background palettes
